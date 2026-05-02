@@ -21,7 +21,7 @@ abstract class HomeRemoteDataSource {
     int sellerLimit = 6,
   });
 
-  /// `GET /store/mobile/offers?limit=&offset=`
+  /// `GET /store/site-promotions?limit=&offset=`
   Future<List<OfferModel>> getOffers({int limit = 20, int offset = 0});
 }
 
@@ -33,14 +33,14 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   static const String _collectionSellersPath =
       '/store/mobile/collections/sellers';
   static const String _mobileSellersPath = '/store/mobile/sellers';
-  static const String _mobileOffersPath = '/store/mobile/offers';
-
+  static const String _mobileOffersPath = '/store/site-promotions';
   List<Map<String, dynamic>> _parseOfferList(dynamic data) {
     List<dynamic> raw = const [];
     if (data is List) {
       raw = data;
     } else if (data is Map<String, dynamic>) {
-      final nested = data['offers'] ?? data['data'] ?? data['items'];
+      final nested =
+          data['promotions'] ?? data['offers'] ?? data['data'] ?? data['items'];
       if (nested is List) {
         raw = nested;
       }

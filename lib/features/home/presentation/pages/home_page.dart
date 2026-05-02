@@ -423,7 +423,8 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                                             isSelected
                                                                 ? orangeColor
                                                                     .withValues(
-                                                                      alpha: 0.12,
+                                                                      alpha:
+                                                                          0.12,
                                                                     )
                                                                 : Colors
                                                                     .grey

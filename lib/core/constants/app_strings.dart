@@ -520,6 +520,32 @@ class AppStrings {
   // Home - sellers section
   static String get seeAll => isArabic ? 'عرض الكل' : 'See All';
 
+  static String get shopByCategory =>
+      isArabic ? 'تسوق حسب الفئة' : 'Shop by category';
+  static String get tapCategoryToRefreshSellers =>
+      isArabic
+          ? 'اضغط على فئة لتحديث البائعين'
+          : 'Tap a category to refresh sellers';
+  static String get bestProducts =>
+      isArabic ? 'أفضل المنتجات' : 'Best products';
+  static String get popularPicksAndProductOffers =>
+      isArabic
+          ? 'اختيارات شائعة وعروض منتجات'
+          : 'Popular picks and product offers';
+  static String get topSellers => isArabic ? 'أفضل البائعين' : 'Top sellers';
+  static String get highlyRatedShops =>
+      isArabic
+          ? 'متاجر ذات تقييم عالٍ في المقدمة'
+          : 'Highly rated shops near the front';
+  static String get mostDeals => isArabic ? 'أكثر العروض' : 'Most deals';
+  static String get freshOffersWorthChecking =>
+      isArabic
+          ? 'عروض جديدة تستحق المشاهدة الآن'
+          : 'Fresh offers worth checking now';
+  static String get swipeThroughMoreShops =>
+      isArabic ? 'اسحب لرؤية المزيد من المتاجر' : 'Swipe through more shops';
+  static String get shopNow => isArabic ? 'تسوق الآن' : 'Shop now';
+
   // Popular food - delivery pricing
   static String get free => isArabic ? 'مجاني' : 'Free';
 

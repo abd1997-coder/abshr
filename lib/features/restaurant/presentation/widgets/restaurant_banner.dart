@@ -30,6 +30,7 @@ class RestaurantBanner extends StatelessWidget {
               errorBuilder:
                   (_, __, ___) => Container(
                     height: 240,
+                    width: double.infinity,
                     decoration: BoxDecoration(
                       color: AppColors.primaryDark,
                       borderRadius: const BorderRadius.only(
@@ -107,43 +108,7 @@ class RestaurantBanner extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            bottom: 10,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+     ],
       ),
     );
   }

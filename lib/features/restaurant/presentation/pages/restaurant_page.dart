@@ -60,35 +60,7 @@ class _RestaurantPageContentState extends State<_RestaurantPageContent> {
     super.dispose();
   }
 
-  Future<void> _onRefresh() async {
-    final ok = await context.read<RestaurantCubit>().refreshSellerProducts(
-      widget.restaurantId,
-    );
-    if (!mounted) return;
-    if (ok) {
-      _refreshController.refreshCompleted();
-      _refreshController.resetNoData();
-    } else {
-      _refreshController.refreshFailed();
-    }
-  }
-
-  Future<void> _onLoading() async {
-    final cubit = context.read<RestaurantCubit>();
-    final ok = await cubit.loadMoreSellerProducts(widget.restaurantId);
-    if (!mounted) return;
-    if (!ok) {
-      _refreshController.loadFailed();
-      return;
-    }
-    final s = cubit.state;
-    if (s is RestaurantLoaded && s.hasMore) {
-      _refreshController.loadComplete();
-    } else {
-      _refreshController.loadNoData();
-    }
-  }
-
+ 
   @override
   Widget build(BuildContext context) {
     final orangeColor = AppConstants.primaryColor;
@@ -130,219 +102,188 @@ class _RestaurantPageContentState extends State<_RestaurantPageContent> {
           String displayCategory(String cat) {
             return cat == 'All' ? l10n.allFilter : cat;
           }
+
           final selectedCategory =
               (loaded.selectedCategory.isNotEmpty)
                   ? loaded.selectedCategory
                   : (categories.isNotEmpty ? categories.first : '');
 
-          return SmartRefresher(
-            controller: _refreshController,
-            enablePullDown: true,
-            enablePullUp: loaded.hasMore,
-            onRefresh: _onRefresh,
-            onLoading: _onLoading,
-            header: WaterDropMaterialHeader(
-              backgroundColor: orangeColor,
-              color: Colors.white,
-            ),
-            footer: CustomFooter(
-              builder: (context, mode) {
-                if (mode == LoadStatus.loading) {
-                  return SizedBox(
-                    height: 56,
-                    child: Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: orangeColor,
+          return CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              RestaurantBanner(
+                detail: detailToShow,
+                darkGreyColor: darkGreyColor,
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RestaurantInfoRow(
+                        detail: detailToShow,
+                        orangeColor: orangeColor,
+                        darkGreyColor: darkGreyColor,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        detailToShow.name,
+                        style: TextStyle(
+                          color: darkGreyColor,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                  );
-                }
-                if (mode == LoadStatus.failed) {
-                  return const SizedBox(height: 48);
-                }
-                return const SizedBox(height: 8);
-              },
-            ),
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                RestaurantBanner(
-                  detail: detailToShow,
-                  darkGreyColor: darkGreyColor,
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        RestaurantInfoRow(
-                          detail: detailToShow,
-                          orangeColor: orangeColor,
-                          darkGreyColor: darkGreyColor,
+                      const SizedBox(height: 6),
+                      Text(
+                        detailToShow.description,
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 13,
+                          height: 1.4,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          detailToShow.name,
-                          style: TextStyle(
-                            color: darkGreyColor,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          detailToShow.description,
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 13,
-                            height: 1.4,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          height: 40,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: categories.length,
-                            itemBuilder: (context, index) {
-                              final category = categories[index];
-                              final isSelected = selectedCategory == category || 
-                                          (category == 'All' && selectedCategory == l10n.allFilter);
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        height: 40,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: categories.length,
+                          itemBuilder: (context, index) {
+                            final category = categories[index];
+                            final isSelected =
+                                selectedCategory == category ||
+                                (category == 'All' &&
+                                    selectedCategory == l10n.allFilter);
 
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    context
-                                        .read<RestaurantCubit>()
-                                        .selectCategory(
-                                          widget.restaurantId,
-                                          category == 'All' ? 'All' : category,
-                                        );
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          isSelected
-                                              ? orangeColor
-                                              : Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        displayCategory(category),
-                                        style: TextStyle(
-                                          color:
-                                              isSelected
-                                                  ? Colors.white
-                                                  : darkGreyColor,
-                                          fontSize: 13,
-                                          fontWeight:
-                                              isSelected
-                                                  ? FontWeight.w600
-                                                  : FontWeight.w500,
-                                        ),
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: GestureDetector(
+                                onTap: () {
+                                  context
+                                      .read<RestaurantCubit>()
+                                      .selectCategory(
+                                        widget.restaurantId,
+                                        category == 'All' ? 'All' : category,
+                                      );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 18,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        isSelected
+                                            ? orangeColor
+                                            : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      displayCategory(category),
+                                      style: TextStyle(
+                                        color:
+                                            isSelected
+                                                ? Colors.white
+                                                : darkGreyColor,
+                                        fontSize: 13,
+                                        fontWeight:
+                                            isSelected
+                                                ? FontWeight.w600
+                                                : FontWeight.w500,
                                       ),
                                     ),
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          '$selectedCategory (${visibleItems.length})',
-                          style: TextStyle(
-                            color: darkGreyColor,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
-                ),
-                if (visibleItems.isEmpty)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 48),
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.inventory_2_outlined,
-                              size: 64,
-                              color: Colors.grey.shade400,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              loaded.menuItems.isEmpty
-                                  ? AppStrings.noProductsYet
-                                  : AppStrings.noProductsInCategory,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey.shade700,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    sliver: SliverGrid(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 0.61,
-                          ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (_) => ProductDetailPage(
-                                      productId: visibleItems[index].id,
-                                      variantId: visibleItems[index].variantId,
-                                    ),
                               ),
                             );
                           },
-                          child: MenuItemCard(
-                            item: visibleItems[index],
-                            orangeColor: orangeColor,
-                            darkGreyColor: darkGreyColor,
-                          ),
                         ),
-                        childCount: visibleItems.length,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        '$selectedCategory (${visibleItems.length})',
+                        style: TextStyle(
+                          color: darkGreyColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+              if (visibleItems.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 48),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            size: 64,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            loaded.menuItems.isEmpty
+                                ? AppStrings.noProductsYet
+                                : AppStrings.noProductsInCategory,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              ],
-            ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.61,
+                        ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => ProductDetailPage(
+                                    productId: visibleItems[index].id,
+                                    variantId: visibleItems[index].variantId,
+                                  ),
+                            ),
+                          );
+                        },
+                        child: MenuItemCard(
+                          item: visibleItems[index],
+                          orangeColor: orangeColor,
+                          darkGreyColor: darkGreyColor,
+                        ),
+                      ),
+                      childCount: visibleItems.length,
+                    ),
+                  ),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            ],
           );
         },
       ),

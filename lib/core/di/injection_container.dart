@@ -36,6 +36,9 @@ import '../../features/cart/data/cart_repository_impl.dart';
 import '../../features/cart/domain/repositories/cart_repository.dart';
 import '../../features/cart/presentation/cubit/cart_cubit.dart';
 import '../../features/cart/domain/usecases/submit_mobile_checkout.dart';
+import '../../features/favorites/data/repositories/favorites_repository_impl.dart';
+import '../../features/favorites/domain/repositories/favorites_repository.dart';
+import '../../features/favorites/presentation/cubit/favorites_cubit.dart';
 import '../../features/payment/data/datasources/payment_remote_datasource.dart';
 import '../../features/payment/data/payment_repository_impl.dart';
 import '../../features/payment/domain/repositories/payment_repository.dart';
@@ -132,6 +135,14 @@ Future<void> init() async {
   );
   getIt.registerLazySingleton<CartCubit>(() => CartCubit(getIt()));
 
+  // Favorites
+  getIt.registerLazySingleton<FavoritesRepository>(
+    () => FavoritesRepositoryImpl(getIt()),
+  );
+  getIt.registerLazySingleton<FavoritesCubit>(
+    () => FavoritesCubit(getIt())..load(),
+  );
+
   // Payment
   getIt.registerLazySingleton<PaymentRemoteDataSource>(() => PaymentRemoteDataSourceImpl(getIt()));
   getIt.registerLazySingleton<PaymentRepository>(() => PaymentRepositoryImpl(getIt()));
@@ -142,4 +153,3 @@ Future<void> init() async {
     () => PaymentCubit(getIt(), getIt(), getIt()),
   );
 }
-

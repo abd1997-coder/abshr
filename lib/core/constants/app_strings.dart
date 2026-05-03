@@ -50,6 +50,7 @@ class AppStrings {
 
   // Orders
   static String get orders => isArabic ? 'الطلبات' : 'Orders';
+  static String get favorites => isArabic ? 'المفضلة' : 'Favorites';
   static String get myOrders => isArabic ? 'طلباتي' : 'My Orders';
   static String get ongoing => isArabic ? 'جاري' : 'Ongoing';
   static String get history => isArabic ? 'السجل' : 'History';
@@ -277,6 +278,18 @@ class AppStrings {
       isArabic
           ? 'لم يُعثر على السلة. حاول مرة أخرى.'
           : 'Cart not found. Please try again.';
+  static String get addedToFavorites =>
+      isArabic ? 'تمت الإضافة إلى المفضلة' : 'Added to favorites';
+  static String get removedFromFavorites =>
+      isArabic ? 'تمت الإزالة من المفضلة' : 'Removed from favorites';
+  static String get removeFromFavorites =>
+      isArabic ? 'إزالة من المفضلة' : 'Remove from favorites';
+  static String get noFavoritesYet =>
+      isArabic ? 'لا توجد منتجات مفضلة بعد' : 'No favorites yet';
+  static String get tapHeartToSaveProducts =>
+      isArabic
+          ? 'اضغط على رمز القلب في أي منتج لحفظه هنا.'
+          : 'Tap the heart on any product to save it here.';
   static String get pleaseSignInValidEmail =>
       isArabic
           ? 'الرجاء تسجيل الدخول ببريد إلكتروني صالح.'

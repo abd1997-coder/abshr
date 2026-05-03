@@ -31,6 +31,9 @@ class AppConstants {
   /// JSON array of strings: recent search queries on the search screen.
   static const String searchRecentKeywordsKey = 'search_recent_keywords';
 
+  /// JSON array of favorite product summaries saved locally.
+  static const String favoriteProductsKey = 'favorite_products';
+
   /// Local preference: `id` of the address to prefill checkout (mobile API has no default endpoint).
   static const String defaultShippingAddressIdKey =
       'default_shipping_address_id';

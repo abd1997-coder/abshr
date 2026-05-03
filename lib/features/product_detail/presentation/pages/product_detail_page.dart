@@ -5,6 +5,9 @@ import 'package:marketplace/core/constants/app_constants.dart';
 import 'package:marketplace/core/constants/app_strings.dart';
 import 'package:marketplace/core/di/injection_container.dart';
 import 'package:marketplace/features/cart/presentation/cubit/cart_cubit.dart';
+import 'package:marketplace/features/favorites/domain/entities/favorite_product.dart';
+import 'package:marketplace/features/favorites/presentation/cubit/favorites_cubit.dart';
+import 'package:marketplace/features/favorites/presentation/cubit/favorites_state.dart';
 import '../cubit/product_detail_cubit.dart';
 import '../../domain/entities/product_detail.dart';
 import '../widgets/product_detail_page_shimmer.dart';
@@ -100,6 +103,33 @@ class _ProductDetailBodyState extends State<_ProductDetailBody> {
     return '\$$amount';
   }
 
+  FavoriteProduct _favoriteProduct() {
+    return FavoriteProduct(
+      id: product.id,
+      name: product.name,
+      imageUrl: product.imageUrl,
+      subtitle: product.subtitle.isNotEmpty ? product.subtitle : product.category,
+      priceLabel: _formatPrice(),
+      variantId: _effectiveVariantId.isNotEmpty ? _effectiveVariantId : null,
+    );
+  }
+
+  Future<void> _toggleFavorite(bool wasFavorite) async {
+    await getIt.get<FavoritesCubit>().toggle(_favoriteProduct());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          wasFavorite
+              ? AppStrings.removedFromFavorites
+              : AppStrings.addedToFavorites,
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(milliseconds: 1200),
+      ),
+    );
+  }
+
   void _incrementQuantity() {
     if (_quantity < _maxQuantity) {
       setState(() => _quantity++);
@@ -166,6 +196,36 @@ class _ProductDetailBodyState extends State<_ProductDetailBody> {
                         size: 20,
                       ),
                     ),
+                  ),
+                ),
+              ),
+              PositionedDirectional(
+                top: 12,
+                end: 12,
+                child: SafeArea(
+                  child: BlocBuilder<FavoritesCubit, FavoritesState>(
+                    bloc: getIt.get<FavoritesCubit>(),
+                    builder: (context, state) {
+                      final isFavorite = state.contains(product.id);
+                      return Material(
+                        color: Colors.black87,
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => _toggleFavorite(isFavorite),
+                          child: Padding(
+                            padding: const EdgeInsets.all(9),
+                            child: Icon(
+                              isFavorite
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: isFavorite ? orange : Colors.white,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),

@@ -9,6 +9,7 @@ import 'package:marketplace/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:marketplace/features/auth/presentation/pages/guest_mode_required_page.dart';
 import 'package:marketplace/features/auth/presentation/pages/login_page.dart';
 import 'package:marketplace/features/cart/presentation/cubit/cart_cubit.dart';
+import 'package:marketplace/features/favorites/presentation/pages/favorites_page.dart';
 import 'package:marketplace/features/orders/presentation/pages/orders_page.dart';
 import 'package:marketplace/features/profile/presentation/pages/profile_page.dart';
 import 'package:marketplace/features/settings/settings_page.dart';
@@ -87,6 +88,18 @@ class DrawerWidget extends StatelessWidget {
                       _openDrawerDestination(
                         context,
                         () => const OrdersPage(),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.favorite_border_rounded),
+                    title: Text(AppStrings.favorites),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const FavoritesPage(),
+                        ),
                       );
                     },
                   ),

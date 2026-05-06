@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../constants/app_assets.dart';
+import '../constants/app_constants.dart';
+import '../constants/app_strings.dart';
 import '../support/open_support_whatsapp.dart';
 
 /// Global floating support entry: shows the WhatsApp number and opens chat on tap.
@@ -15,10 +16,11 @@ class SupportWhatsAppOverlay extends StatefulWidget {
 
 class _SupportWhatsAppOverlayState extends State<SupportWhatsAppOverlay>
     with SingleTickerProviderStateMixin {
-  static const Color _whatsappGreen = Color(0xFF25D366);
   late final AnimationController _controller;
   late final Animation<double> _pulse;
   late final Animation<double> _lift;
+  double _scrollOffset = 0;
+  bool _isScrolling = false;
 
   @override
   void initState() {
@@ -43,14 +45,32 @@ class _SupportWhatsAppOverlayState extends State<SupportWhatsAppOverlay>
     super.dispose();
   }
 
+  double _getClampedScrollOffset() {
+    return _scrollOffset.clamp(-70.0, 70.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       alignment: Alignment.center,
       children: [
-        widget.child,
+        NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (notification is ScrollUpdateNotification) {
+              setState(() {
+                _scrollOffset += notification.scrollDelta ?? 0;
+              });
+            } else if (notification is ScrollStartNotification) {
+              setState(() => _isScrolling = true);
+            } else if (notification is ScrollEndNotification) {
+              setState(() => _isScrolling = false);
+            }
+            return false;
+          },
+          child: widget.child,
+        ),
         PositionedDirectional(
-          bottom: 0,
+          bottom: 60,
           end: 0,
           child: SafeArea(
             child: Padding(
@@ -59,57 +79,56 @@ class _SupportWhatsAppOverlayState extends State<SupportWhatsAppOverlay>
                 animation: _controller,
                 builder: (context, child) {
                   return Transform.translate(
-                    offset: Offset(0, _lift.value),
-                    child: Transform.scale(
-                      scale: _pulse.value,
-                      child: child,
-                    ),
+                    offset: Offset(0, _lift.value + _getClampedScrollOffset()),
+                    child: Transform.scale(scale: _pulse.value, child: child),
                   );
                 },
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: 66,
-                      height: 66,
-                      decoration: BoxDecoration(
-                        color: _whatsappGreen.withValues(alpha: 0.16),
-                        shape: BoxShape.circle,
-                      ),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: _isScrolling ? 90 : 70,
+                  height: _isScrolling ? 90 : 70,
+                  decoration: BoxDecoration(
+                    color: AppConstants.primaryColor.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Material(
+                    elevation: _isScrolling ? 18 : 12,
+                    shadowColor: AppConstants.primaryColor.withValues(
+                      alpha: _isScrolling ? 0.6 : 0.4,
                     ),
-                    Material(
-                      elevation: 10,
-                      shadowColor: _whatsappGreen.withValues(alpha: 0.35),
-                      borderRadius: BorderRadius.circular(28),
-                      color: Colors.white,
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: () => openSupportWhatsApp(context),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: ClipOval(
-                            child: SizedBox(
-                              width: 46,
-                              height: 46,
-                              child: Image.asset(
-                                AppAssets.whatsapp,
-                                fit: BoxFit.cover,
-                                errorBuilder:
-                                    (_, __, ___) => ColoredBox(
-                                      color: _whatsappGreen,
-                                      child: const Icon(
-                                        Icons.chat_bubble_rounded,
-                                        color: Colors.white,
-                                        size: 24,
-                                      ),
-                                    ),
-                              ),
+                    borderRadius: BorderRadius.circular(45),
+                    color: Colors.white,
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () => openSupportWhatsApp(context),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add_shopping_cart_rounded,
+                              color: AppConstants.primaryColor,
+                              size: _isScrolling ? 28 : 22,
                             ),
-                          ),
+                            if (_isScrolling)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  AppStrings.orderDirectly,
+                                  style: TextStyle(
+                                    color: AppConstants.primaryColor,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

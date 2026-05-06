@@ -15,6 +15,8 @@ class HomeLoaded extends HomeState {
   final List<Category> categories;
   final List<Seller> sellers;
   final List<Offer> offers;
+  final List<MenuItem> latestProducts;
+  final List<MenuItem> bestSellerProducts;
 
   /// `null` = show all sellers; otherwise filter by collection id (`pcol_…`).
   final String? sellersCollectionId;
@@ -25,6 +27,8 @@ class HomeLoaded extends HomeState {
     required this.categories,
     required this.sellers,
     this.offers = const [],
+    this.latestProducts = const [],
+    this.bestSellerProducts = const [],
     this.sellersCollectionId,
     this.sellersLoading = false,
   });
@@ -33,6 +37,8 @@ class HomeLoaded extends HomeState {
     List<Category>? categories,
     List<Seller>? sellers,
     List<Offer>? offers,
+    List<MenuItem>? latestProducts,
+    List<MenuItem>? bestSellerProducts,
     String? sellersCollectionId,
     bool? sellersLoading,
     bool updateSellersCollectionId = false,
@@ -41,6 +47,8 @@ class HomeLoaded extends HomeState {
       categories: categories ?? this.categories,
       sellers: sellers ?? this.sellers,
       offers: offers ?? this.offers,
+      latestProducts: latestProducts ?? this.latestProducts,
+      bestSellerProducts: bestSellerProducts ?? this.bestSellerProducts,
       sellersCollectionId:
           updateSellersCollectionId
               ? sellersCollectionId
@@ -54,6 +62,8 @@ class HomeLoaded extends HomeState {
     categories,
     sellers,
     offers,
+    latestProducts,
+    bestSellerProducts,
     sellersCollectionId,
     sellersLoading,
   ];

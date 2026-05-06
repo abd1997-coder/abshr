@@ -5,6 +5,7 @@ import '../../domain/entities/category.dart';
 import '../../domain/entities/offer.dart';
 import '../../domain/entities/seller.dart';
 import '../../domain/repositories/home_repository.dart';
+import '../../../restaurant/domain/entities/menu_item.dart';
 import '../datasources/home_remote_datasource.dart';
 
 class HomeRepositoryImpl implements HomeRepository {
@@ -73,6 +74,38 @@ class HomeRepositoryImpl implements HomeRepository {
       return Right(models.map((m) => m.toEntity()).toList());
     } catch (e) {
       return Left(ServerFailure(AppStrings.failedToLoadOffers));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<MenuItem>>> getLatestProducts({
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final products = await _remoteDataSource.getLatestProducts(
+        limit: limit,
+        offset: offset,
+      );
+      return Right(products);
+    } catch (e) {
+      return Left(ServerFailure(AppStrings.failedToLoadProduct));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<MenuItem>>> getBestSellerProducts({
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final products = await _remoteDataSource.getBestSellerProducts(
+        limit: limit,
+        offset: offset,
+      );
+      return Right(products);
+    } catch (e) {
+      return Left(ServerFailure(AppStrings.failedToLoadProduct));
     }
   }
 }

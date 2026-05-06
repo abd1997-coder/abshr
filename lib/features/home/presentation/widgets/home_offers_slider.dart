@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:marketplace/core/constants/app_constants.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:marketplace/core/constants/app_strings.dart';
 import 'package:marketplace/features/home/domain/entities/offer.dart';
 import 'package:marketplace/features/product_detail/presentation/pages/product_detail_page.dart';
@@ -16,20 +17,7 @@ class HomeOffersSlider extends StatefulWidget {
 }
 
 class _HomeOffersSliderState extends State<HomeOffersSlider> {
-  late final PageController _pageController;
   int _pageIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(viewportFraction: 0.88);
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
 
   void _onOfferTap(Offer offer) {
     final handle = offer.linkHandle?.trim();
@@ -80,12 +68,9 @@ class _HomeOffersSliderState extends State<HomeOffersSlider> {
         ),
         SizedBox(
           height: 168,
-          child: PageView.builder(
-            controller: _pageController,
-            padEnds: true,
+          child: CarouselSlider.builder(
             itemCount: widget.offers.length,
-            onPageChanged: (i) => setState(() => _pageIndex = i),
-            itemBuilder: (context, index) {
+            itemBuilder: (context, index, realIndex) {
               final offer = widget.offers[index];
               final hasTarget = offer.hasLink;
 
@@ -95,8 +80,8 @@ class _HomeOffersSliderState extends State<HomeOffersSlider> {
                   color: Colors.transparent,
                   child: InkWell(
                     // onTap: hasTarget ? () => _onOfferTap(offer) : null,
-                    
                     borderRadius: BorderRadius.circular(14),
+                    onTap: hasTarget ? () => _onOfferTap(offer) : null,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(14),
                       child: Stack(
@@ -191,6 +176,19 @@ class _HomeOffersSliderState extends State<HomeOffersSlider> {
                 ),
               );
             },
+            options: CarouselOptions(
+              height: 168,
+              viewportFraction: 0.88,
+              padEnds: true,
+              enableInfiniteScroll: widget.offers.length > 1,
+              autoPlay: widget.offers.length > 1,
+              autoPlayInterval: const Duration(seconds: 3),
+              autoPlayAnimationDuration: const Duration(milliseconds: 800),
+              autoPlayCurve: Curves.easeInOut,
+              enlargeStrategy: CenterPageEnlargeStrategy.height,
+              onPageChanged:
+                  (index, reason) => setState(() => _pageIndex = index),
+            ),
           ),
         ),
         if (widget.offers.length > 1) ...[

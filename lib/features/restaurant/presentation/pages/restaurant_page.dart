@@ -4,6 +4,7 @@ import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:marketplace/core/constants/app_constants.dart';
 import 'package:marketplace/core/constants/app_strings.dart';
 import 'package:marketplace/core/di/injection_container.dart';
+import 'package:marketplace/core/widgets/widgets.dart';
 import 'package:marketplace/features/home/domain/entities/seller.dart';
 import 'package:marketplace/features/product_detail/presentation/pages/product_detail_page.dart';
 import 'package:marketplace/features/restaurant/presentation/cubit/restaurant_cubit.dart';
@@ -53,14 +54,27 @@ class _RestaurantPageContentState extends State<_RestaurantPageContent> {
   final RefreshController _refreshController = RefreshController(
     initialRefresh: false,
   );
+  final TextEditingController _productSearchController =
+      TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _productSearchController.addListener(_onProductSearchChanged);
+  }
 
   @override
   void dispose() {
     _refreshController.dispose();
+    _productSearchController.removeListener(_onProductSearchChanged);
+    _productSearchController.dispose();
     super.dispose();
   }
 
- 
+  void _onProductSearchChanged() {
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final orangeColor = AppConstants.primaryColor;
@@ -91,7 +105,23 @@ class _RestaurantPageContentState extends State<_RestaurantPageContent> {
           }
           final loaded = state as RestaurantLoaded;
           final detail = loaded.detail;
-          final visibleItems = loaded.visibleMenuItems;
+          final categoryItems = loaded.visibleMenuItems;
+          final productSearchQuery =
+              _productSearchController.text.trim().toLowerCase();
+          final visibleItems =
+              productSearchQuery.isEmpty
+                  ? categoryItems
+                  : categoryItems
+                      .where(
+                        (item) =>
+                            item.name.toLowerCase().contains(
+                              productSearchQuery,
+                            ) ||
+                            item.subtitle.toLowerCase().contains(
+                              productSearchQuery,
+                            ),
+                      )
+                      .toList();
 
           final detailToShow = detail;
           final categories =
@@ -147,6 +177,31 @@ class _RestaurantPageContentState extends State<_RestaurantPageContent> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 24),
+                      SizedBox(
+                        height: 48,
+                        child: AppTextField(
+                          controller: _productSearchController,
+                          hintText: AppStrings.searchProductsHint,
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: Colors.grey.shade600,
+                            size: 22,
+                          ),
+                          suffixIcon:
+                              _productSearchController.text.trim().isNotEmpty
+                                  ? GestureDetector(
+                                    onTap: () {
+                                      _productSearchController.clear();
+                                    },
+                                    child: Icon(
+                                      Icons.close_rounded,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  )
+                                  : null,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
                       SizedBox(
                         height: 40,
                         child: ListView.builder(

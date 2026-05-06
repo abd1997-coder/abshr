@@ -3,6 +3,7 @@ import 'package:marketplace/core/errors/failures.dart';
 import '../entities/category.dart';
 import '../entities/offer.dart';
 import '../entities/seller.dart';
+import '../../../restaurant/domain/entities/menu_item.dart';
 
 abstract class HomeRepository {
   Future<Either<Failure, List<Category>>> getCategories();
@@ -20,6 +21,16 @@ abstract class HomeRepository {
   });
 
   Future<Either<Failure, List<Offer>>> getOffers({
+    int limit = 20,
+    int offset = 0,
+  });
+
+  Future<Either<Failure, List<MenuItem>>> getLatestProducts({
+    int limit = 20,
+    int offset = 0,
+  });
+
+  Future<Either<Failure, List<MenuItem>>> getBestSellerProducts({
     int limit = 20,
     int offset = 0,
   });

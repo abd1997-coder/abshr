@@ -1,17 +1,16 @@
 import '../../../../core/network/api_client.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/seller.dart';
 import '../models/category_model.dart';
 import '../models/offer_model.dart';
 import '../models/seller_model.dart';
+import '../../../restaurant/data/models/menu_item_model.dart';
+import '../../../restaurant/domain/entities/menu_item.dart';
 
 abstract class HomeRemoteDataSource {
   Future<List<Category>> getCategories();
-  Future<List<Seller>> getSellers({
-    String? q,
-    int limit = 20,
-    int offset = 0,
-  });
+  Future<List<Seller>> getSellers({String? q, int limit = 20, int offset = 0});
 
   /// `GET /store/mobile/collections/sellers?collection_id=&limit=&offset=&seller_limit=`
   Future<List<Seller>> getSellersForCollection({
@@ -23,6 +22,15 @@ abstract class HomeRemoteDataSource {
 
   /// `GET /store/site-promotions?limit=&offset=`
   Future<List<OfferModel>> getOffers({int limit = 20, int offset = 0});
+
+  /// `GET /store/mobile/products/latest?limit=&offset=`
+  Future<List<MenuItem>> getLatestProducts({int limit = 20, int offset = 0});
+
+  /// `GET /store/mobile/products/best-sellers?limit=&offset=`
+  Future<List<MenuItem>> getBestSellerProducts({
+    int limit = 20,
+    int offset = 0,
+  });
 }
 
 class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
@@ -34,6 +42,9 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
       '/store/mobile/collections/sellers';
   static const String _mobileSellersPath = '/store/mobile/sellers';
   static const String _mobileOffersPath = '/store/site-promotions';
+  static const String _latestProductsPath = '/store/mobile/products/latest';
+  static const String _bestSellerProductsPath =
+      '/store/mobile/products/best-sellers';
   List<Map<String, dynamic>> _parseOfferList(dynamic data) {
     List<dynamic> raw = const [];
     if (data is List) {
@@ -72,10 +83,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
     int limit = 20,
     int offset = 0,
   }) async {
-    final queryParameters = <String, dynamic>{
-      'limit': limit,
-      'offset': offset,
-    };
+    final queryParameters = <String, dynamic>{'limit': limit, 'offset': offset};
     final trimmed = q?.trim();
     if (trimmed != null && trimmed.isNotEmpty) {
       queryParameters['q'] = trimmed;
@@ -162,7 +170,9 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
 
     return sellersRaw
         .whereType<Map>()
-        .map((e) => SellerModel.fromMobileSellerJson(Map<String, dynamic>.from(e)))
+        .map(
+          (e) => SellerModel.fromMobileSellerJson(Map<String, dynamic>.from(e)),
+        )
         .toList();
   }
 
@@ -174,8 +184,43 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
     );
     final data = response.data;
     final maps = _parseOfferList(data);
-    final list = maps.map(OfferModel.fromMobileJson).toList()
-      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final list =
+        maps.map(OfferModel.fromMobileJson).toList()
+          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     return list;
+  }
+
+  @override
+  Future<List<MenuItem>> getLatestProducts({int limit = 20, int offset = 0}) {
+    return _getProducts(_latestProductsPath, limit: limit, offset: offset);
+  }
+
+  @override
+  Future<List<MenuItem>> getBestSellerProducts({
+    int limit = 20,
+    int offset = 0,
+  }) {
+    return _getProducts(_bestSellerProductsPath, limit: limit, offset: offset);
+  }
+
+  Future<List<MenuItem>> _getProducts(
+    String path, {
+    required int limit,
+    required int offset,
+  }) async {
+    final response = await _apiClient.get(
+      '${AppConstants.baseUrl}$path',
+      queryParameters: {'limit': limit, 'offset': offset},
+    );
+    final data = response.data;
+    if (data == null || data is! Map<String, dynamic>) return [];
+
+    final raw = data['products'];
+    if (raw == null || raw is! List) return [];
+
+    return raw
+        .whereType<Map>()
+        .map((e) => MenuItemModel.fromProductJson(Map<String, dynamic>.from(e)))
+        .toList();
   }
 }

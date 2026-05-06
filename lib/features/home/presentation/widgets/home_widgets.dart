@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:marketplace/core/constants/app_strings.dart';
 import 'package:marketplace/features/home/domain/entities/seller.dart';
+import 'package:marketplace/features/product_detail/presentation/pages/product_detail_page.dart';
+import 'package:marketplace/features/restaurant/domain/entities/menu_item.dart';
+import 'package:marketplace/features/restaurant/presentation/widgets/menu_item_card.dart';
 import 'package:shimmer/shimmer.dart';
 
 class HomeShimmerLoading extends StatelessWidget {
@@ -384,6 +387,79 @@ class SellerCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class HomeProductSection extends StatelessWidget {
+  const HomeProductSection({
+    super.key,
+    required this.title,
+    required this.products,
+    required this.orangeColor,
+    required this.darkGreyColor,
+  });
+
+  final String title;
+  final List<MenuItem> products;
+  final Color orangeColor;
+  final Color darkGreyColor;
+
+  @override
+  Widget build(BuildContext context) {
+    if (products.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            title,
+            style: TextStyle(
+              color: darkGreyColor,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 256,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: products.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return SizedBox(
+                width: 156,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (_) => ProductDetailPage(
+                              productId: product.id,
+                              variantId: product.variantId,
+                            ),
+                      ),
+                    );
+                  },
+                  child: MenuItemCard(
+                    item: product,
+                    orangeColor: orangeColor,
+                    darkGreyColor: darkGreyColor,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

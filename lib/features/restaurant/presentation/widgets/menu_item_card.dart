@@ -138,14 +138,15 @@ class MenuItemCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    '${l10n.currencySymbol}${item.price}',
-                    style: TextStyle(
-                      color: orangeColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                  if (item.price.isNotEmpty)
+                    Text(
+                      '${l10n.currencySymbol}${item.price}',
+                      style: TextStyle(
+                        color: orangeColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
                   if (item.subtitle.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(

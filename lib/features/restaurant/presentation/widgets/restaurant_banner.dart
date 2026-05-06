@@ -87,7 +87,8 @@ class RestaurantBanner extends StatelessWidget {
           ),
           Positioned(
             top: MediaQuery.of(context).padding.top + 12,
-            left: 16,
+            left: Directionality.of(context) == TextDirection.ltr ? 16 : null,
+            right: Directionality.of(context) == TextDirection.rtl ? 16 : null,
             child: GestureDetector(
               onTap: () => Navigator.of(context).pop(),
               child: Container(
@@ -100,15 +101,11 @@ class RestaurantBanner extends StatelessWidget {
                     BoxShadow(color: AppColors.blackOpacity1, blurRadius: 8),
                   ],
                 ),
-                child: Icon(
-                  Icons.arrow_back_ios_new,
-                  size: 18,
-                  color: darkGreyColor,
-                ),
+                child: Icon(Icons.arrow_back, size: 18, color: darkGreyColor),
               ),
             ),
           ),
-     ],
+        ],
       ),
     );
   }

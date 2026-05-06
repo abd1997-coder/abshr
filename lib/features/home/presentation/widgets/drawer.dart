@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:marketplace/core/constants/app_assets.dart';
 import 'package:marketplace/core/constants/app_constants.dart';
 import 'package:marketplace/core/constants/app_strings.dart';
 import 'package:marketplace/core/di/injection_container.dart';
@@ -42,31 +43,53 @@ class DrawerWidget extends StatelessWidget {
                   DrawerHeader(
                     decoration: BoxDecoration(color: AppConstants.primaryColor),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                AppStrings.welcomeHeader,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                displayName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                AppStrings.welcomeTagline,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         CircleAvatar(
                           radius: 28,
                           backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.person,
-                            size: 32,
-                            color: AppConstants.primaryColor,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              displayName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          child: ClipOval(
+                            child: Image.asset(
+                              AppAssets.logo,
+                              width: 34,
+                              height: 34,
+                              fit: BoxFit.contain,
                             ),
-                            const SizedBox(height: 4),
-                          ],
+                          ),
                         ),
                       ],
                     ),
@@ -85,10 +108,7 @@ class DrawerWidget extends StatelessWidget {
                     leading: const Icon(Icons.receipt_long),
                     title: Text(AppStrings.orders),
                     onTap: () {
-                      _openDrawerDestination(
-                        context,
-                        () => const OrdersPage(),
-                      );
+                      _openDrawerDestination(context, () => const OrdersPage());
                     },
                   ),
                   ListTile(
@@ -156,7 +176,10 @@ class DrawerWidget extends StatelessWidget {
                     );
                   }
                   return ListTile(
-                    leading: Icon(Icons.logout_rounded, color: Colors.red.shade700),
+                    leading: Icon(
+                      Icons.logout_rounded,
+                      color: Colors.red.shade700,
+                    ),
                     title: Text(
                       AppStrings.logout,
                       style: TextStyle(
@@ -176,10 +199,7 @@ class DrawerWidget extends StatelessWidget {
   }
 
   /// Opens [page] after closing the drawer, or a full-screen guest prompt (localized).
-  void _openDrawerDestination(
-    BuildContext context,
-    Widget Function() page,
-  ) {
+  void _openDrawerDestination(BuildContext context, Widget Function() page) {
     final loggedIn = context.read<AuthCubit>().state is AuthAuthenticated;
     final nav = Navigator.of(context);
     nav.pop();
@@ -223,11 +243,12 @@ class DrawerWidget extends StatelessWidget {
                 if (!nav.mounted) return;
                 nav.pushAndRemoveUntil(
                   MaterialPageRoute<void>(
-                    builder: (_) => const SafeArea(
-                      top: false,
-                      bottom: true,
-                      child: AppNavigator(),
-                    ),
+                    builder:
+                        (_) => const SafeArea(
+                          top: false,
+                          bottom: true,
+                          child: AppNavigator(),
+                        ),
                   ),
                   (route) => false,
                 );

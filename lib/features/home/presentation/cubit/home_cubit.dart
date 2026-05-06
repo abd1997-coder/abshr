@@ -4,6 +4,7 @@ import '../../domain/entities/category.dart';
 import '../../domain/entities/offer.dart';
 import '../../domain/entities/seller.dart';
 import '../../domain/repositories/home_repository.dart';
+import '../../../restaurant/domain/entities/menu_item.dart';
 
 part 'home_state.dart';
 
@@ -25,6 +26,10 @@ class HomeCubit extends Cubit<HomeState> {
             ? await _repository.getSellers()
             : await _repository.getSellersForCollection(collectionId: filterId);
     final offersResult = await _repository.getOffers(limit: 20, offset: 0);
+    final latestProductsResult =
+        await _repository.getLatestProducts(limit: 20, offset: 0);
+    final bestSellerProductsResult =
+        await _repository.getBestSellerProducts(limit: 20, offset: 0);
 
     categoriesResult.fold((failure) => emit(HomeError(failure.message)), (
       categories,
@@ -33,11 +38,17 @@ class HomeCubit extends Cubit<HomeState> {
         sellers,
       ) {
         final offers = offersResult.fold((_) => <Offer>[], (o) => o);
+        final latestProducts =
+            latestProductsResult.fold((_) => <MenuItem>[], (p) => p);
+        final bestSellerProducts =
+            bestSellerProductsResult.fold((_) => <MenuItem>[], (p) => p);
         emit(
           HomeLoaded(
             categories: categories,
             sellers: sellers,
             offers: offers,
+            latestProducts: latestProducts,
+            bestSellerProducts: bestSellerProducts,
             sellersCollectionId: filterId,
             sellersLoading: false,
           ),

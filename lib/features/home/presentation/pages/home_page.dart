@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:marketplace/core/navigation/app_route_observer.dart';
+import 'package:marketplace/core/constants/app_assets.dart';
 import 'package:marketplace/core/constants/app_constants.dart';
 import 'package:marketplace/core/constants/app_strings.dart';
 import 'package:marketplace/core/di/injection_container.dart';
@@ -13,6 +14,8 @@ import 'package:marketplace/features/cart/presentation/pages/cart_page.dart';
 import 'package:marketplace/features/home/presentation/widgets/drawer.dart';
 import 'package:marketplace/features/home/domain/entities/seller.dart';
 import 'package:marketplace/features/home/presentation/cubit/home_cubit.dart';
+import 'package:marketplace/features/home/presentation/pages/all_categories_page.dart';
+import 'package:marketplace/features/home/presentation/pages/all_sellers_page.dart';
 import 'package:marketplace/features/home/presentation/pages/search_page.dart';
 import 'package:marketplace/features/restaurant/presentation/pages/restaurant_page.dart';
 import 'package:marketplace/features/home/data/models/offer_model.dart';
@@ -143,8 +146,11 @@ class _HomePageState extends State<HomePage> with RouteAware {
             final categories = loadedState.categories;
             final sellers = loadedState.sellers;
             final offers = loadedState.offers;
+            final latestProducts = loadedState.latestProducts;
+            final bestSellerProducts = loadedState.bestSellerProducts;
             final sellersCollectionId = loadedState.sellersCollectionId;
             final sellersLoading = loadedState.sellersLoading;
+            final visibleSellers = sellers.take(3).toList();
 
             return SafeArea(
               child: RefreshIndicator(
@@ -191,30 +197,17 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const Spacer(),
                             Expanded(
-                              child: RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: "${l10n.heyGreeting} ",
-                                      style: TextStyle(
-                                        color: darkGreyColor,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: displayName,
-                                      style: TextStyle(
-                                        color: orangeColor,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
+                              child: Center(
+                                child: Image.asset(
+                                  AppAssets.logo,
+                                  height: 32,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             ),
+                            const Spacer(),
                             BlocBuilder<CartCubit, CartState>(
                               bloc: _cartCubit,
                               builder: (context, cartState) {
@@ -284,6 +277,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                           ],
                         ),
                       ),
+                      // Search
                       const SizedBox(height: 8),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -311,11 +305,12 @@ class _HomePageState extends State<HomePage> with RouteAware {
                           ),
                         ),
                       ),
+                      // Offers
                       if (offers.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         HomeOffersSlider(offers: offers),
                       ],
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 28),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
@@ -325,8 +320,28 @@ class _HomePageState extends State<HomePage> with RouteAware {
                               AppStrings.allCategories,
                               style: TextStyle(
                                 color: darkGreyColor,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) => AllCategoriesPage(
+                                          categories: categories,
+                                        ),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                AppStrings.seeAll,
+                                style: TextStyle(
+                                  color: orangeColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ],
@@ -334,11 +349,11 @@ class _HomePageState extends State<HomePage> with RouteAware {
                       ),
                       const SizedBox(height: 12),
                       SizedBox(
-                        height: 104,
+                        height: 90,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: 1 + categories.length,
+                          itemCount: 1 + categories.take(8).length,
                           itemBuilder: (context, index) {
                             final isSelected =
                                 index == 0
@@ -364,17 +379,26 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                 color: Colors.transparent,
                                 child: InkWell(
                                   onTap: () {
-                                    final id =
-                                        index == 0
-                                            ? null
-                                            : categories[index - 1].id;
-                                    _homeCubit.selectCategoryFilter(id);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (_) =>
+                                                index == 0
+                                                    ? const AllSellersPage()
+                                                    : AllSellersPage(
+                                                      initialCategory:
+                                                          categories[index - 1],
+                                                    ),
+                                      ),
+                                    );
                                   },
                                   borderRadius: BorderRadius.circular(12),
                                   child: SizedBox(
                                     width: 72,
                                     child: Column(
-                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Container(
                                           decoration: BoxDecoration(
@@ -469,7 +493,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                           },
                         ),
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 14),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
@@ -483,10 +507,27 @@ class _HomePageState extends State<HomePage> with RouteAware {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const AllSellersPage(),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                AppStrings.seeAll,
+                                style: TextStyle(
+                                  color: orangeColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
+
                       if (sellersLoading)
                         Padding(
                           padding: const EdgeInsets.symmetric(
@@ -539,9 +580,9 @@ class _HomePageState extends State<HomePage> with RouteAware {
                           ),
                         )
                       else
-                        ...sellers.map(
+                        ...visibleSellers.map(
                           (Seller seller) => Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                             child: GestureDetector(
                               onTap: () {
                                 Navigator.push(
@@ -560,6 +601,24 @@ class _HomePageState extends State<HomePage> with RouteAware {
                             ),
                           ),
                         ),
+                      if (latestProducts.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        HomeProductSection(
+                          title: AppStrings.latestProducts,
+                          products: latestProducts,
+                          orangeColor: orangeColor,
+                          darkGreyColor: darkGreyColor,
+                        ),
+                      ],
+                      if (bestSellerProducts.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        HomeProductSection(
+                          title: AppStrings.bestProducts,
+                          products: bestSellerProducts,
+                          orangeColor: orangeColor,
+                          darkGreyColor: darkGreyColor,
+                        ),
+                      ],
                       const SizedBox(height: 24),
                     ],
                   ),

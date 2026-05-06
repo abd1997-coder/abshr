@@ -404,6 +404,8 @@ class AppStrings {
   // Home / search
   static String get searchDishesHint =>
       isArabic ? 'ابحث عن أطباق، متاجر…' : 'Search dishes, shops';
+  static String get searchProductsHint =>
+      isArabic ? 'ابحث عن المنتجات' : 'Search products';
   static String get allCategories =>
       isArabic ? 'جميع الفئات' : 'All Categories';
   static String get allFilter => isArabic ? 'الكل' : 'All';
@@ -541,6 +543,8 @@ class AppStrings {
           : 'Tap a category to refresh sellers';
   static String get bestProducts =>
       isArabic ? 'أفضل المنتجات' : 'Best products';
+  static String get latestProducts =>
+      isArabic ? 'أحدث المنتجات' : 'Latest products';
   static String get popularPicksAndProductOffers =>
       isArabic
           ? 'اختيارات شائعة وعروض منتجات'
@@ -559,7 +563,9 @@ class AppStrings {
       isArabic ? 'اسحب لرؤية المزيد من المتاجر' : 'Swipe through more shops';
   static String get shopNow => isArabic ? 'تسوق الآن' : 'Shop now';
 
-  // Popular food - delivery pricing
+  // Order directly
+  static String get orderDirectly =>
+      isArabic ? 'اطلب مباشرة' : 'Order directly';
   static String get free => isArabic ? 'مجاني' : 'Free';
 
   // Pricing filter

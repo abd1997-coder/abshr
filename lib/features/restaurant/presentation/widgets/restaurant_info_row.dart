@@ -18,20 +18,20 @@ class RestaurantInfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Row(
-          children: [
-            Icon(Icons.star, size: 18, color: orangeColor),
-            const SizedBox(width: 4),
-            Text(
-              detail.rating,
-              style: TextStyle(
-                color: AppColors.grey700,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
+        // Row(
+        //   children: [
+        //     Icon(Icons.star, size: 18, color: orangeColor),
+        //     const SizedBox(width: 4),
+        //     Text(
+        //       detail.rating,
+        //       style: TextStyle(
+        //         color: AppColors.grey700,
+        //         fontSize: 13,
+        //         fontWeight: FontWeight.w600,
+        //       ),
+        //     ),
+        //   ],
+        // ),
         const SizedBox(width: 20),
         Row(
           children: [
@@ -55,6 +55,7 @@ class RestaurantInfoRow extends StatelessWidget {
             Text(
               detail.time,
               style: TextStyle(color: AppColors.grey600, fontSize: 13),
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

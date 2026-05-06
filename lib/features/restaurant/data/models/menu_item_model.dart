@@ -39,7 +39,7 @@ class MenuItemModel extends MenuItem {
       } else if (v['prices'] is List && (v['prices'] as List).isNotEmpty) {
         final p0 = (v['prices'] as List).first;
         if (p0 is Map && p0['amount'] is num) {
-          priceLabel = (((p0['amount'] as num).toDouble()) / 100).toStringAsFixed(2);
+          priceLabel = ((p0['amount'] as num).toDouble()).toStringAsFixed(0);
         }
       }
     }

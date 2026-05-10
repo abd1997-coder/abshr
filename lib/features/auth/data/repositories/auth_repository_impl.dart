@@ -1,5 +1,4 @@
 import 'package:dartz/dartz.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fa;
 import '../../../cart/domain/repositories/cart_repository.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -7,6 +6,7 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../datasources/auth_local_datasource.dart';
+import '../models/login_response_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;
@@ -20,11 +20,18 @@ class AuthRepositoryImpl implements AuthRepository {
   );
 
   @override
-  Future<Either<Failure, User>> login(String email, String password) async {
+  Future<Either<Failure, void>> registerWithPhone({
+    required String firstName,
+    required String lastName,
+    required String phone,
+  }) async {
     try {
-      final user = await _remoteDataSource.login(email, password);
-      await _localDataSource.cacheUser(user);
-      return Right(user);
+      await _remoteDataSource.registerWithPhone(
+        firstName: firstName,
+        lastName: lastName,
+        phone: phone,
+      );
+      return const Right(null);
     } on ValidationException catch (e) {
       return Left(ValidationFailure(e.message));
     } on ServerException catch (e) {
@@ -39,18 +46,34 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, User>> register(
-    String email,
-    String password,
-    String firstName,
-    String lastName,
+  Future<Either<Failure, LoginResponseModel>> loginWithPhone(
+    String phone,
   ) async {
     try {
-      final user = await _remoteDataSource.register(
-        email,
-        password,
-        firstName,
-        lastName,
+      final response = await _remoteDataSource.sendOtp(phone);
+      return Right(response);
+    } on ValidationException catch (e) {
+      return Left(ValidationFailure(e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure('Failed to send OTP: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, User>> verifyOtp({
+    required String phone,
+    required String otp,
+    required bool isLogin,
+  }) async {
+    try {
+      final user = await _remoteDataSource.verifyOtp(
+        phone: phone,
+        otp: otp,
+        isLogin: isLogin,
       );
       await _localDataSource.cacheUser(user);
       return Right(user);
@@ -61,18 +84,13 @@ class AuthRepositoryImpl implements AuthRepository {
     } on NetworkException catch (e) {
       return Left(NetworkFailure(e.message));
     } catch (e) {
-      return Left(
-        ServerFailure('An unexpected error occurred: ${e.toString()}'),
-      );
+      return Left(AuthFailure('Verification failed: ${e.toString()}'));
     }
   }
 
   @override
   Future<Either<Failure, void>> logout() async {
     try {
-      try {
-        await fa.FirebaseAuth.instance.signOut();
-      } catch (_) {}
       await _localDataSource.clearCache();
       await _cartRepository.ensureCart();
       return const Right(null);
@@ -103,42 +121,6 @@ class AuthRepositoryImpl implements AuthRepository {
       return Right(isAuth);
     } catch (e) {
       return const Right(false);
-    }
-  }
-
-  @override
-  Future<Either<Failure, String>> sendOtp(String phoneNumber) async {
-    try {
-      final verificationId = await _remoteDataSource.sendOtp(phoneNumber);
-      return Right(verificationId);
-    } on fa.FirebaseAuthException catch (e) {
-      return Left(AuthFailure(e.message ?? e.code));
-    } on NetworkException catch (e) {
-      return Left(NetworkFailure(e.message));
-    } catch (e) {
-      return Left(
-        AuthFailure('Failed to send OTP: ${e.toString()}'),
-      );
-    }
-  }
-
-  @override
-  Future<Either<Failure, User>> verifyOtp(
-    String verificationId,
-    String smsCode,
-  ) async {
-    try {
-      final user = await _remoteDataSource.verifyOtp(verificationId, smsCode);
-      await _localDataSource.cacheUser(user);
-      return Right(user);
-    } on fa.FirebaseAuthException catch (e) {
-      return Left(AuthFailure(e.message ?? e.code));
-    } on NetworkException catch (e) {
-      return Left(NetworkFailure(e.message));
-    } catch (e) {
-      return Left(
-        AuthFailure('Verification failed: ${e.toString()}'),
-      );
     }
   }
 }

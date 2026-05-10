@@ -11,11 +11,13 @@ import 'package:marketplace/core/widgets/widgets.dart';
 import 'package:marketplace/features/cart/presentation/cubit/cart_cubit.dart';
 import 'package:marketplace/features/cart/presentation/cubit/cart_state.dart';
 import 'package:marketplace/features/cart/presentation/pages/cart_page.dart';
+import 'package:marketplace/features/home/data/models/search_result_model.dart';
 import 'package:marketplace/features/home/domain/entities/seller.dart';
 import 'package:marketplace/features/home/domain/repositories/home_repository.dart';
+import 'package:marketplace/features/restaurant/domain/entities/menu_item.dart';
 import 'package:marketplace/features/restaurant/presentation/pages/restaurant_page.dart';
 
-/// Search screen: loads sellers from `/store/mobile/sellers?q=…&limit=10`
+/// Search screen: loads sellers and products from `/store/mobile/search?q=…&limit=10`
 /// and persists recent search keywords locally.
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -34,7 +36,7 @@ class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
 
-  List<Seller> _searchResults = [];
+  List<SearchResult> _searchResults = [];
   bool _searchLoading = false;
   String? _searchError;
   List<String> _recentKeywords = [];
@@ -46,15 +48,16 @@ class _SearchPageState extends State<SearchPage> {
     _debounce = Timer(const Duration(milliseconds: 400), _runDebouncedSearch);
   }
 
-  Future<void> _fetchSellers(String q) async {
+  Future<void> _fetchSearchResults(String q) async {
     setState(() {
       _searchLoading = true;
       _searchError = null;
     });
-    final result = await _homeRepository.getSellers(
+    final result = await _homeRepository.searchAll(
       q: q,
       limit: _searchLimit,
       offset: 0,
+      type: 'all',
     );
     if (!mounted) return;
     result.fold(
@@ -63,11 +66,11 @@ class _SearchPageState extends State<SearchPage> {
         _searchError = failure.message;
         _searchResults = [];
       }),
-      (sellers) {
+      (SearchResponse searchResponse) {
         setState(() {
           _searchLoading = false;
           _searchError = null;
-          _searchResults = sellers;
+          _searchResults = searchResponse.results;
         });
         final typed = _searchController.text.trim();
         if (typed.isNotEmpty) {
@@ -86,11 +89,10 @@ class _SearchPageState extends State<SearchPage> {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! List) return;
-      final list =
-          decoded
-              .map((e) => e.toString().trim())
-              .where((s) => s.isNotEmpty)
-              .toList();
+      final list = decoded
+          .map((e) => e.toString().trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
       if (mounted) setState(() => _recentKeywords = list);
     } catch (_) {
       if (mounted) setState(() => _recentKeywords = []);
@@ -116,7 +118,7 @@ class _SearchPageState extends State<SearchPage> {
 
   void _runDebouncedSearch() {
     final raw = _searchController.text.trim();
-    _fetchSellers(raw.isEmpty ? _defaultSearchQuery : raw);
+    _fetchSearchResults(raw.isEmpty ? _defaultSearchQuery : raw);
   }
 
   @override
@@ -127,7 +129,7 @@ class _SearchPageState extends State<SearchPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _loadRecentKeywords();
       if (!mounted) return;
-      _fetchSellers(_defaultSearchQuery);
+      _fetchSearchResults(_defaultSearchQuery);
     });
   }
 
@@ -169,13 +171,12 @@ class _SearchPageState extends State<SearchPage> {
             child: BlocBuilder<CartCubit, CartState>(
               bloc: _cartCubit,
               builder: (context, cartState) {
-                final count =
-                    cartState is CartLoaded
-                        ? cartState.items.fold<int>(
-                          0,
-                          (sum, e) => sum + e.quantity,
-                        )
-                        : 0;
+                final count = cartState is CartLoaded
+                    ? cartState.items.fold<int>(
+                        0,
+                        (sum, e) => sum + e.quantity,
+                      )
+                    : 0;
                 return Stack(
                   clipBehavior: Clip.none,
                   alignment: Alignment.center,
@@ -252,28 +253,27 @@ class _SearchPageState extends State<SearchPage> {
                     color: Colors.grey.shade600,
                     size: 22,
                   ),
-                  suffixIcon:
-                      _searchController.text.trim().isNotEmpty
-                          ? GestureDetector(
-                            onTap: () {
-                              _searchController.clear();
-                              setState(() {});
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.only(right: 12),
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade300,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.close,
-                                size: 18,
-                                color: Colors.grey.shade700,
-                              ),
+                  suffixIcon: _searchController.text.trim().isNotEmpty
+                      ? GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 12),
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              shape: BoxShape.circle,
                             ),
-                          )
-                          : null,
+                            child: Icon(
+                              Icons.close,
+                              size: 18,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
               ),
             ),
@@ -352,19 +352,7 @@ class _SearchPageState extends State<SearchPage> {
                 ),
               ),
             const SizedBox(height: 24),
-            // Seller search results (GET /store/mobile/sellers?q=…&limit=10)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                AppStrings.sellers,
-                style: TextStyle(
-                  color: darkGreyColor,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
+            // Search results (sellers and products)
             if (_searchLoading && _searchResults.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
@@ -395,35 +383,76 @@ class _SearchPageState extends State<SearchPage> {
                     style: TextStyle(color: Colors.red.shade700, fontSize: 13),
                   ),
                 ),
+              // Sellers section
+              if (_searchResults.any((r) => r.type == 'seller')) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    AppStrings.sellers,
+                    style: TextStyle(
+                      color: darkGreyColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ..._searchResults
+                    .where((r) => r.type == 'seller' && r.seller != null)
+                    .map(
+                      (r) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _SuggestedSellerTile(
+                          seller: r.seller!,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RestaurantPage(
+                                  restaurantId: r.seller!.id,
+                                  restaurantName: r.seller!.name,
+                                  initialSeller: r.seller,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                const SizedBox(height: 24),
+              ],
+              // Products section
+              if (_searchResults.any((r) => r.type == 'product')) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    AppStrings.products,
+                    style: TextStyle(
+                      color: darkGreyColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ..._searchResults
+                    .where((r) => r.type == 'product' && r.product != null)
+                    .map(
+                      (r) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _SuggestedProductTile(product: r.product!),
+                      ),
+                    ),
+                const SizedBox(height: 24),
+              ],
               if (_searchResults.isEmpty && !_searchLoading)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    AppStrings.noSellersFound,
+                    AppStrings.noResultsFound,
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                   ),
                 ),
-              ..._searchResults.map(
-                (Seller s) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _SuggestedSellerTile(
-                    seller: s,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => RestaurantPage(
-                                restaurantId: s.id,
-                                restaurantName: s.name,
-                                initialSeller: s,
-                              ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
             ],
           ],
         ),
@@ -444,18 +473,15 @@ class _SuggestedSellerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final darkGreyColor = Colors.grey.shade800;
-    final thumb =
-        seller.coverPhotoUrl.trim().isNotEmpty
-            ? seller.coverPhotoUrl.trim()
-            : seller.imageUrl.trim();
-    final sub =
-        seller.locationLine.isNotEmpty
-            ? seller.locationLine
-            : seller.handleLine;
-    final reviews =
-        seller.reviewCount > 0
-            ? '${seller.reviewCount} ${AppStrings.reviews}'
-            : AppStrings.noReviewsYet;
+    final thumb = seller.coverPhotoUrl.trim().isNotEmpty
+        ? seller.coverPhotoUrl.trim()
+        : seller.imageUrl.trim();
+    final sub = seller.locationLine.isNotEmpty
+        ? seller.locationLine
+        : seller.handleLine;
+    final reviews = seller.reviewCount > 0
+        ? '${seller.reviewCount} ${AppStrings.reviews}'
+        : AppStrings.noReviewsYet;
 
     return GestureDetector(
       onTap: onTap,
@@ -483,16 +509,15 @@ class _SuggestedSellerTile extends StatelessWidget {
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                errorBuilder:
-                    (_, __, ___) => Container(
-                      width: 80,
-                      height: 80,
-                      color: Colors.grey.shade300,
-                      child: Icon(
-                        Icons.storefront_outlined,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
+                errorBuilder: (_, __, ___) => Container(
+                  width: 80,
+                  height: 80,
+                  color: Colors.grey.shade300,
+                  child: Icon(
+                    Icons.storefront_outlined,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
               ),
             ),
             Expanded(
@@ -554,6 +579,118 @@ class _SuggestedSellerTile extends StatelessWidget {
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestedProductTile extends StatelessWidget {
+  final MenuItem product;
+
+  const _SuggestedProductTile({
+    required this.product,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final darkGreyColor = Colors.grey.shade800;
+
+    return GestureDetector(
+      onTap: () {
+        // TODO: Navigate to product details page
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(12),
+              ),
+              child: Image.network(
+                product.imageUrl,
+                width: 80,
+                height: 80,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 80,
+                  height: 80,
+                  color: Colors.grey.shade300,
+                  child: Icon(
+                    Icons.shopping_bag_outlined,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: TextStyle(
+                        color: darkGreyColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (product.subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        product.subtitle,
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.attach_money,
+                          size: 18,
+                          color: Colors.green.shade700,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${product.price} ${AppStrings.currency}',
+                          style: TextStyle(
+                            color: darkGreyColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],

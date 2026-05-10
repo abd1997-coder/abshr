@@ -35,33 +35,68 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
-  Future<void> login(String email, String password) async {
+  Future<void> registerWithPhone({
+    required String firstName,
+    required String lastName,
+    required String phone,
+  }) async {
     emit(AuthLoading());
-    final result = await _repository.login(email, password);
+    final result = await _repository.registerWithPhone(
+      firstName: firstName,
+      lastName: lastName,
+      phone: phone,
+    );
 
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (user) => emit(AuthAuthenticated(user)),
+      (_) => emit(
+        AuthOtpSent(
+          phoneNumber: phone,
+          isLogin: false,
+          firstName: firstName,
+          lastName: lastName,
+        ),
+      ),
     );
   }
 
-  Future<void> register(
-    String email,
-    String password,
-    String firstName,
-    String lastName,
-  ) async {
+  Future<void> loginWithPhone(String phone) async {
     emit(AuthLoading());
-    final result = await _repository.register(
-      email,
-      password,
-      firstName,
-      lastName,
-    );
+    final result = await _repository.loginWithPhone(phone);
 
-    result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (user) => emit(AuthAuthenticated(user)),
+    result.fold((failure) => emit(AuthError(failure.message)), (loginResponse) {
+      if (loginResponse.otpRequired == true) {
+        emit(AuthOtpSent(phoneNumber: phone, isLogin: true));
+      } else if (loginResponse.token != null &&
+          loginResponse.token!.isNotEmpty &&
+          loginResponse.customer != null) {
+        emit(AuthAuthenticatedFromLogin(loginResponse.customer!));
+      } else {
+        emit(AuthOtpSent(phoneNumber: phone, isLogin: true));
+      }
+    });
+  }
+
+  Future<void> sendOtp({
+    required String phone,
+    required bool isLogin,
+    String? firstName,
+    String? lastName,
+  }) async {
+    if (isLogin) {
+      await loginWithPhone(phone);
+      return;
+    }
+
+    if (firstName == null || lastName == null) {
+      emit(AuthError('Missing name information for resend.'));
+      return;
+    }
+
+    await registerWithPhone(
+      firstName: firstName,
+      lastName: lastName,
+      phone: phone,
     );
   }
 
@@ -75,24 +110,17 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
-  /// Sends OTP to [phoneNumber]. On success emits [AuthOtpSent].
-  Future<void> sendOtp(String phoneNumber) async {
+  Future<void> verifyOtp({
+    required String phone,
+    required String otp,
+    required bool isLogin,
+  }) async {
     emit(AuthLoading());
-    final result = await _repository.sendOtp(phoneNumber);
-
-    result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (verificationId) => emit(AuthOtpSent(
-        verificationId: verificationId,
-        phoneNumber: phoneNumber,
-      )),
+    final result = await _repository.verifyOtp(
+      phone: phone,
+      otp: otp,
+      isLogin: isLogin,
     );
-  }
-
-  /// Verifies OTP and signs in. [verificationId] and [smsCode] from OTP flow.
-  Future<void> verifyOtp(String verificationId, String smsCode) async {
-    emit(AuthLoading());
-    final result = await _repository.verifyOtp(verificationId, smsCode);
 
     result.fold(
       (failure) => emit(AuthError(failure.message)),

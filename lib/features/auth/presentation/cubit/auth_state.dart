@@ -31,16 +31,28 @@ class AuthError extends AuthState {
   List<Object?> get props => [message];
 }
 
-/// OTP was sent to [phoneNumber]. Use [verificationId] when verifying the code.
 class AuthOtpSent extends AuthState {
-  final String verificationId;
   final String phoneNumber;
+  final bool isLogin;
+  final String? firstName;
+  final String? lastName;
 
   const AuthOtpSent({
-    required this.verificationId,
     required this.phoneNumber,
+    required this.isLogin,
+    this.firstName,
+    this.lastName,
   });
 
   @override
-  List<Object?> get props => [verificationId, phoneNumber];
+  List<Object?> get props => [phoneNumber, isLogin, firstName, lastName];
+}
+
+class AuthAuthenticatedFromLogin extends AuthState {
+  final User user;
+
+  const AuthAuthenticatedFromLogin(this.user);
+
+  @override
+  List<Object?> get props => [user];
 }

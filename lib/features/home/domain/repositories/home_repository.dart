@@ -3,6 +3,7 @@ import 'package:marketplace/core/errors/failures.dart';
 import '../entities/category.dart';
 import '../entities/offer.dart';
 import '../entities/seller.dart';
+import '../../data/models/search_result_model.dart';
 import '../../../restaurant/domain/entities/menu_item.dart';
 
 abstract class HomeRepository {
@@ -11,6 +12,13 @@ abstract class HomeRepository {
     String? q,
     int limit = 20,
     int offset = 0,
+  });
+
+  Future<Either<Failure, SearchResponse>> searchAll({
+    String? q,
+    int limit = 20,
+    int offset = 0,
+    String type = 'all',
   });
 
   Future<Either<Failure, List<Seller>>> getSellersForCollection({

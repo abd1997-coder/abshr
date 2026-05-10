@@ -498,7 +498,18 @@ class AppStrings {
           ? 'سيظهر هنا بحثك الأخير.'
           : 'Your recent searches will appear here.';
   static String get noSellersFound =>
-      isArabic ? 'لم يُعثر على بائعين.' : 'No sellers found.';
+      isArabic ? 'لم يُعثر على بائعين.' : 'No sellers found';
+
+  static String get noResultsFound =>
+      isArabic ? 'لم يُعثر على نتائج.' : 'No results found.';
+
+  static String get products =>
+      isArabic ? 'المنتجات' : 'Products';
+
+  static String get currency => isArabic ? 'ل.س' : 'SYP';
+
+  static String get failedToLoadSearchResults =>
+      isArabic ? 'فشل تحميل نتائج البحث' : 'Failed to load search results';
 
   // Home page
   static String get goodMorning => isArabic ? 'صباح الخير' : 'Good morning';

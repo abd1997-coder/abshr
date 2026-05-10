@@ -4,6 +4,7 @@ import 'package:marketplace/core/errors/failures.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/offer.dart';
 import '../../domain/entities/seller.dart';
+import '../../data/models/search_result_model.dart';
 import '../../domain/repositories/home_repository.dart';
 import '../../../restaurant/domain/entities/menu_item.dart';
 import '../datasources/home_remote_datasource.dart';
@@ -38,6 +39,26 @@ class HomeRepositoryImpl implements HomeRepository {
       return Right(sellers);
     } catch (e) {
       return Left(ServerFailure(AppStrings.failedToLoadSellers));
+    }
+  }
+
+  @override
+  Future<Either<Failure, SearchResponse>> searchAll({
+    String? q,
+    int limit = 20,
+    int offset = 0,
+    String type = 'all',
+  }) async {
+    try {
+      final response = await _remoteDataSource.searchAll(
+        q: q,
+        limit: limit,
+        offset: offset,
+        type: type,
+      );
+      return Right(response);
+    } catch (e) {
+      return Left(ServerFailure(AppStrings.failedToLoadSearchResults));
     }
   }
 

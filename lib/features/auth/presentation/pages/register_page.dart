@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:country_code_picker/country_code_picker.dart';
 import 'package:marketplace/core/constants/app_strings.dart';
 import 'package:marketplace/core/utils/toast_service.dart';
 import 'package:marketplace/core/widgets/widgets.dart';
 import 'package:marketplace/features/home/presentation/pages/home_page.dart';
 import '../cubit/auth_cubit.dart';
+import 'verification_page.dart';
 
 class RegisterPage extends StatefulWidget {
   /// When false (e.g. opened from cart), pops back on success instead of replacing the stack with home.
@@ -20,28 +22,33 @@ class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
+  final _phoneController = TextEditingController();
+  CountryCode _selectedCountry = CountryCode.fromCountryCode(
+    'SY',
+  ); // Default to Syria
+
   @override
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _phoneController.dispose();
     super.dispose();
+  }
+
+  String _getFullPhoneNumber() {
+    String countryCode = _selectedCountry.dialCode ?? '+963';
+    String phone = _phoneController.text.trim();
+    // Remove leading zeros from phone number
+    phone = phone.replaceAll(RegExp(r'^0+'), '');
+    return '$countryCode$phone';
   }
 
   void _handleRegister(AuthCubit authCubit) {
     if (_formKey.currentState!.validate()) {
-      authCubit.register(
-        _emailController.text.trim(),
-        _passwordController.text,
-        _firstNameController.text.trim(),
-        _lastNameController.text.trim(),
+      authCubit.registerWithPhone(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        phone: _getFullPhoneNumber(),
       );
     }
   }
@@ -62,6 +69,19 @@ class _RegisterPageState extends State<RegisterPage> {
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.red,
+              ),
+            );
+          }
+          if (state is AuthOtpSent) {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder:
+                    (innerContext) => VerificationPage(
+                      phoneNumber: state.phoneNumber,
+                      isLogin: state.isLogin,
+                      firstName: state.firstName,
+                      lastName: state.lastName,
+                    ),
               ),
             );
           }
@@ -209,9 +229,9 @@ class _RegisterPageState extends State<RegisterPage> {
                           },
                         ),
                         const SizedBox(height: 12),
-                        // EMAIL field
+                        // PHONE field
                         Text(
-                          AppStrings.emailUpper,
+                          AppStrings.phoneUpper,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -220,98 +240,55 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        AppTextFormField(
-                          controller: _emailController,
-                          hintText: AppStrings.hintEmailExample,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return AppStrings.validationEmailRequired;
-                            }
-                            if (!value.contains('@')) {
-                              return AppStrings.validationEmailInvalid;
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        // PASSWORD field
-                        Text(
-                          AppStrings.passwordUpper,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        AppTextFormField(
-                          controller: _passwordController,
-                          hintText: AppStrings.hintPasswordEnter,
-                          obscureText: _obscurePassword,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: Colors.grey.shade600,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Country code picker
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.grey.shade300,
+                                  width: 1,
+                                ),
+                              ),
+                              child: CountryCodePicker(
+                                onChanged: (country) {
+                                  setState(() {
+                                    _selectedCountry = country;
+                                  });
+                                },
+                                initialSelection: _selectedCountry.code,
+                                favorite: const [
+                                  '+963',
+                                  '+966',
+                                  '+971',
+                                  '+20',
+                                  '+1',
+                                ],
+                                showCountryOnly: false,
+                                showOnlyCountryWhenClosed: false,
+                                alignLeft: false,
+                                padding: EdgeInsets.zero,
+                              ),
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return AppStrings.validationPasswordRequired;
-                            }
-                            if (value.length < 6) {
-                              return AppStrings.validationPasswordMin6;
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        // RE-TYPE PASSWORD field
-                        Text(
-                          AppStrings.retypePasswordUpper,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        AppTextFormField(
-                          controller: _confirmPasswordController,
-                          hintText: AppStrings.hintReenterPassword,
-                          obscureText: _obscureConfirmPassword,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureConfirmPassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: Colors.grey.shade600,
+                            const SizedBox(width: 8),
+                            // Phone number input
+                            Expanded(
+                              child: AppTextFormField(
+                                controller: _phoneController,
+                                hintText: '912345678',
+                                keyboardType: TextInputType.phone,
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Phone number is required';
+                                  }
+                                  return null;
+                                },
+                              ),
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _obscureConfirmPassword =
-                                    !_obscureConfirmPassword;
-                              });
-                            },
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return AppStrings.validationConfirmPassword;
-                            }
-                            if (value != _passwordController.text) {
-                              return AppStrings.validationPasswordsMismatch;
-                            }
-                            return null;
-                          },
+                          ],
                         ),
                         const SizedBox(height: 40),
                         // SIGN UP button

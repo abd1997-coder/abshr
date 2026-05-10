@@ -1,22 +1,46 @@
 import 'dart:convert';
-
 import '../../../../core/errors/exceptions.dart';
+import 'customer_model.dart';
 
-/// `POST /store/mobile/auth` — at minimum `{ "token": "<jwt>" }`; may include
-/// `customer` or name fields used for local display name.
 class LoginResponseModel {
-  LoginResponseModel({required this.token, this.displayName});
+  LoginResponseModel({
+    this.token,
+    this.displayName,
+    this.success,
+    this.otpRequired,
+    this.customer,
+  });
 
-  final String token;
-
-  /// Best-effort full name from response body (not from JWT).
+  final String? token;
   final String? displayName;
+  final bool? success;
+  final bool? otpRequired;
+  final CustomerModel? customer;
 
   factory LoginResponseModel.fromJson(dynamic data) {
     if (data is! Map) {
       throw const ServerException('Invalid auth response: expected JSON object');
     }
     final map = Map<String, dynamic>.from(data);
+
+    final success = map['success'] as bool? ?? false;
+
+    if (!success && map['token'] == null) {
+      throw ServerException(
+        map['message'] as String? ?? 
+        map['error'] as String? ?? 
+        'Authentication failed',
+      );
+    }
+
+    if (map['token'] == null && success && map['otp_required'] == true) {
+      return LoginResponseModel(
+        success: success,
+        otpRequired: map['otp_required'] as bool? ?? true,
+        customer: _parseCustomer(map),
+      );
+    }
+
     final raw = map['token'];
     if (raw == null) {
       throw const ServerException('Invalid auth response: no token');
@@ -25,10 +49,22 @@ class LoginResponseModel {
     if (token.isEmpty) {
       throw const ServerException('Invalid auth response: empty token');
     }
+
     return LoginResponseModel(
       token: token,
+      success: success,
+      otpRequired: map['otp_required'] as bool? ?? false,
+      customer: _parseCustomer(map),
       displayName: _parseDisplayName(map),
     );
+  }
+
+  static CustomerModel? _parseCustomer(Map<String, dynamic> map) {
+    final customer = map['customer'];
+    if (customer is Map) {
+      return CustomerModel.fromJson(Map<String, dynamic>.from(customer));
+    }
+    return null;
   }
 
   static String? _stringOf(dynamic v) {
@@ -70,7 +106,6 @@ class LoginResponseModel {
     return null;
   }
 
-  /// Best-effort id from JWT payload (`actor_id`, then `auth_identity_id`). No signature verify.
   static String? userIdFromJwt(String jwt) {
     try {
       final parts = jwt.split('.');
@@ -89,7 +124,6 @@ class LoginResponseModel {
     }
   }
 
-  /// Optional `name` / `first_name`+`last_name` claims in JWT payload.
   static String? nameFromJwt(String jwt) {
     try {
       final parts = jwt.split('.');

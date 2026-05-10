@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:country_code_picker/country_code_picker.dart';
 import 'package:marketplace/core/constants/app_strings.dart';
 import 'package:marketplace/core/widgets/widgets.dart';
 import '../cubit/auth_cubit.dart';
@@ -16,6 +17,7 @@ class ForgotPasswordPage extends StatefulWidget {
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  CountryCode _selectedCountry = CountryCode.fromCountryCode('SY'); // Default to Syria
 
   @override
   void dispose() {
@@ -23,35 +25,49 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     super.dispose();
   }
 
-  void _handleSendCode() {
+  String _getFullPhoneNumber() {
+    String countryCode = _selectedCountry.dialCode ?? '+963';
+    String phone = _emailController.text.trim();
+    // Remove leading zeros from phone number
+    phone = phone.replaceAll(RegExp(r'^0+'), '');
+    return '$countryCode$phone';
+  }
+
+  void _handleSendCode(AuthCubit authCubit) {
     if (_formKey.currentState!.validate()) {
-      // Navigate to verification page
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => VerificationPage(
-            phoneNumber: _emailController.text.trim(),
-            verificationId: '',
-          ),
-        ),
-      );
+      // Send OTP to the phone number
+      authCubit.loginWithPhone(_getFullPhoneNumber());
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authCubit = context.read<AuthCubit>();
     final screenHeight = MediaQuery.of(context).size.height;
     final headerHeight = screenHeight * 0.35;
     final darkBlueColor = const Color(0xFF1A237E); // Dark indigo/blue
 
     return Scaffold(
       body: BlocConsumer<AuthCubit, AuthState>(
+        bloc: authCubit,
         listener: (context, state) {
           if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.red,
+              ),
+            );
+          }
+          if (state is AuthOtpSent) {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (innerContext) => VerificationPage(
+                  phoneNumber: state.phoneNumber,
+                  isLogin: state.isLogin,
+                  firstName: state.firstName,
+                  lastName: state.lastName,
+                ),
               ),
             );
           }
@@ -166,9 +182,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const SizedBox(height: 30),
-                              // EMAIL field
+                              // PHONE field
                               Text(
-                                AppStrings.emailUpper,
+                                AppStrings.phoneUpper ?? 'PHONE',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -177,25 +193,55 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              AppTextFormField(
-                                controller: _emailController,
-                                hintText: AppStrings.hintEmailExample,
-                                keyboardType: TextInputType.emailAddress,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return AppStrings.validationEmailRequired;
-                                  }
-                                  if (!value.contains('@')) {
-                                    return AppStrings.validationEmailInvalid;
-                                  }
-                                  return null;
-                                },
-                              ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Country code picker
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: CountryCodePicker(
+                                    onChanged: (country) {
+                                      setState(() {
+                                        _selectedCountry = country;
+                                      });
+                                    },
+                                    initialSelection: _selectedCountry.code,
+                                    favorite: const ['+963', '+966', '+971', '+20', '+1'],
+                                    showCountryOnly: false,
+                                    showOnlyCountryWhenClosed: false,
+                                    alignLeft: false,
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // Phone number input
+                                Expanded(
+                                  child: AppTextFormField(
+                                    controller: _emailController,
+                                    hintText: '912345678',
+                                    keyboardType: TextInputType.phone,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Phone number is required';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
                               const SizedBox(height: 40),
                               // SEND CODE button
                               PrimaryButton(
                                 label: AppStrings.sendCode,
-                                onPressed: _handleSendCode,
+                                onPressed: () => _handleSendCode(authCubit),
                                 isLoading: state is AuthLoading,
                               ),
                             ],

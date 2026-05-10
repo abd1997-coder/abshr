@@ -4,6 +4,7 @@ import '../../domain/entities/category.dart';
 import '../../domain/entities/seller.dart';
 import '../models/category_model.dart';
 import '../models/offer_model.dart';
+import '../models/search_result_model.dart';
 import '../models/seller_model.dart';
 import '../../../restaurant/data/models/menu_item_model.dart';
 import '../../../restaurant/domain/entities/menu_item.dart';
@@ -11,6 +12,14 @@ import '../../../restaurant/domain/entities/menu_item.dart';
 abstract class HomeRemoteDataSource {
   Future<List<Category>> getCategories();
   Future<List<Seller>> getSellers({String? q, int limit = 20, int offset = 0});
+
+  /// `GET /store/mobile/search?q=&limit=&offset=&type=`
+  Future<SearchResponse> searchAll({
+    String? q,
+    int limit = 20,
+    int offset = 0,
+    String type = 'all',
+  });
 
   /// `GET /store/mobile/collections/sellers?collection_id=&limit=&offset=&seller_limit=`
   Future<List<Seller>> getSellersForCollection({
@@ -41,6 +50,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   static const String _collectionSellersPath =
       '/store/mobile/collections/sellers';
   static const String _mobileSellersPath = '/store/mobile/sellers';
+  static const String _mobileSearchPath = '/store/mobile/search';
   static const String _mobileOffersPath = '/store/site-promotions';
   static const String _latestProductsPath = '/store/mobile/products/latest';
   static const String _bestSellerProductsPath =
@@ -103,6 +113,44 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
         .whereType<Map<String, dynamic>>()
         .map(SellerModel.fromMobileSellerJson)
         .toList();
+  }
+
+  @override
+  Future<SearchResponse> searchAll({
+    String? q,
+    int limit = 20,
+    int offset = 0,
+    String type = 'all',
+  }) async {
+    final queryParameters = <String, dynamic>{
+      'limit': limit,
+      'offset': offset,
+      'type': type,
+    };
+    final trimmed = q?.trim();
+    if (trimmed != null && trimmed.isNotEmpty) {
+      queryParameters['q'] = trimmed;
+    }
+
+    final response = await _apiClient.get(
+      _mobileSearchPath,
+      queryParameters: queryParameters,
+    );
+    final data = response.data;
+    if (data == null || data is! Map<String, dynamic>) {
+      return SearchResponse(
+        results: [],
+        count: 0,
+        productsCount: 0,
+        sellersCount: 0,
+        limit: limit,
+        offset: offset,
+        q: trimmed ?? '',
+        type: type,
+      );
+    }
+
+    return SearchResponse.fromJson(data);
   }
 
   @override

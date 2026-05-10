@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:country_code_picker/country_code_picker.dart';
 import 'package:marketplace/core/constants/app_constants.dart';
 import 'package:marketplace/core/constants/app_strings.dart';
+import 'package:marketplace/core/di/injection_container.dart';
 import 'package:marketplace/core/utils/toast_service.dart';
 import 'package:marketplace/core/widgets/widgets.dart';
 import 'package:marketplace/features/home/presentation/pages/home_page.dart';
 import '../cubit/auth_cubit.dart';
 import 'register_page.dart';
+import 'verification_page.dart';
 
 class LoginPage extends StatefulWidget {
-  /// When false (e.g. opened from cart), only pops after success instead of pushing [HomePage].
   final bool navigateToHomeOnSuccess;
 
   const LoginPage({super.key, this.navigateToHomeOnSuccess = true});
@@ -20,29 +22,46 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  final _phoneController = TextEditingController();
+  CountryCode _selectedCountry = CountryCode.fromCountryCode('SY');
+  AuthCubit authCubit =  getIt<AuthCubit>();
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _phoneController.dispose();
     super.dispose();
+  }
+
+  String _getFullPhoneNumber() {
+    String countryCode = _selectedCountry.dialCode ?? '+963';
+    String phone = _phoneController.text.trim();
+    phone = phone.replaceAll(RegExp(r'^0+'), '');
+    return '$countryCode$phone';
   }
 
   void _handleLogin(AuthCubit authCubit) {
     if (_formKey.currentState!.validate()) {
-      authCubit.login(_emailController.text.trim(), _passwordController.text);
+      authCubit.loginWithPhone(_getFullPhoneNumber());
+    }
+  }
+
+  void _navigateToHome() {
+    if (widget.navigateToHomeOnSuccess) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+        (route) => false,
+      );
+    } else {
+      Navigator.of(context).pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authCubit = context.read<AuthCubit>();
     final screenHeight = MediaQuery.of(context).size.height;
     final headerHeight = (screenHeight * 0.30).clamp(120.0, double.infinity);
     final orangeColor = AppConstants.primaryColor;
-    final darkBlueColor = const Color(0xFF1A237E); // Dark indigo/blue
+    const darkBlueColor = Color(0xFF1A237E);
 
     return Scaffold(
       body: BlocConsumer<AuthCubit, AuthState>(
@@ -51,16 +70,26 @@ class _LoginPageState extends State<LoginPage> {
           if (state is AuthError) {
             showErrorToast(context, state.message);
           }
+          if (state is AuthOtpSent) {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder:
+                    (innerContext) => VerificationPage(
+                      phoneNumber: state.phoneNumber,
+                      isLogin: state.isLogin,
+                      firstName: state.firstName,
+                      lastName: state.lastName,
+                    ),
+              ),
+            );
+          }
           if (state is AuthAuthenticated) {
-            if (widget.navigateToHomeOnSuccess) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => HomePage()),
-              );
-              showSuccessToast(context, AppStrings.loginSuccessful);
-            } else {
-              Navigator.of(context).pop();
-            }
+            showSuccessToast(context, AppStrings.loginSuccessful);
+            _navigateToHome();
+          }
+          if (state is AuthAuthenticatedFromLogin) {
+            showSuccessToast(context, AppStrings.loginSuccessful);
+            _navigateToHome();
           }
         },
         builder: (context, state) {
@@ -72,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
                     Container(
                       height: headerHeight,
                       width: double.infinity,
-                      decoration: BoxDecoration(color: darkBlueColor),
+                      decoration: const BoxDecoration(color: darkBlueColor),
                       child: Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -90,7 +119,7 @@ class _LoginPageState extends State<LoginPage> {
                             Text(
                               AppStrings.loginSubtitle,
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.9),
                                 fontSize: 14,
                               ),
                             ),
@@ -110,9 +139,8 @@ class _LoginPageState extends State<LoginPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const SizedBox(height: 30),
-                            // EMAIL field
                             Text(
-                              AppStrings.emailUpper,
+                              AppStrings.phoneUpper,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -121,55 +149,54 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            AppTextFormField(
-                              controller: _emailController,
-                              hintText: AppStrings.hintEmailExample,
-                              keyboardType: TextInputType.emailAddress,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return AppStrings.validationEmailRequired;
-                                }
-                                if (!value.contains('@')) {
-                                  return AppStrings.validationEmailInvalid;
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            // PASSWORD field
-                            Text(
-                              AppStrings.passwordUpper,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade700,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            AppTextFormField(
-                              controller: _passwordController,
-                              hintText: AppStrings.hintPasswordEnter,
-                              obscureText: _obscurePassword,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                  color: Colors.grey.shade600,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: CountryCodePicker(
+                                    onChanged: (country) {
+                                      setState(() {
+                                        _selectedCountry = country;
+                                      });
+                                    },
+                                    initialSelection: _selectedCountry.code,
+                                    favorite: const [
+                                      '+963',
+                                      '+966',
+                                      '+971',
+                                      '+20',
+                                      '+1',
+                                    ],
+                                    showCountryOnly: false,
+                                    showOnlyCountryWhenClosed: false,
+                                    alignLeft: false,
+                                    padding: EdgeInsets.zero,
+                                  ),
                                 ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return AppStrings.validationPasswordRequired;
-                                }
-                                return null;
-                              },
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: AppTextFormField(
+                                    controller: _phoneController,
+                                    hintText: '912345678',
+                                    keyboardType: TextInputType.phone,
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Phone number is required';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 32),
                             PrimaryButton(
@@ -178,13 +205,12 @@ class _LoginPageState extends State<LoginPage> {
                               isLoading: state is AuthLoading,
                             ),
                             const SizedBox(height: 16),
-                            // CONTINUE AS GUEST button
                             OutlinedButton(
                               onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => HomePage(),
+                                    builder: (context) => const HomePage(),
                                   ),
                                 );
                               },
@@ -208,7 +234,6 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                             const SizedBox(height: 32),
-                            // Footer link
                             Center(
                               child: RichText(
                                 text: TextSpan(
@@ -217,9 +242,7 @@ class _LoginPageState extends State<LoginPage> {
                                     fontSize: 14,
                                   ),
                                   children: [
-                                    TextSpan(
-                                      text: AppStrings.dontHaveAccount,
-                                    ),
+                                    TextSpan(text: AppStrings.dontHaveAccount),
                                     WidgetSpan(
                                       child: GestureDetector(
                                         onTap: () {
